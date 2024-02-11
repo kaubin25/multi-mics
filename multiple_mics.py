@@ -10,12 +10,12 @@ frames = bytearray()
 frames2 = bytearray()
 
 # Sampling parameters
-CHUNK = 1024
+CHUNK = 1024 # parameter related to the data buffer
 samplerate = 44100 # samples per second
-sampletime = 45 #seconds
-index1 = 1
-index2 = 3
-dist=39.5 #inches
+sampletime = 45 # seconds
+index1 = 1 # device index of the first microphone
+index2 = 3 # device index of the second microphone
+dist=39.5 # inches
 
 
 s=pyaudio.PyAudio()
@@ -30,8 +30,7 @@ s=pyaudio.PyAudio()
 p = pyaudio.PyAudio()
 p2 = pyaudio.PyAudio()
 
-
-
+# Open the first recording data stream.
 stream = p.open(format=pyaudio.paInt16,
                 channels=1,
                 rate=samplerate,
@@ -39,6 +38,7 @@ stream = p.open(format=pyaudio.paInt16,
                 frames_per_buffer=CHUNK,
                 input_device_index=index1)
 
+# Open the second recording data stream.
 stream2 = p2.open(format=pyaudio.paInt16,
                 channels=1,
                 rate=samplerate,
@@ -48,7 +48,7 @@ stream2 = p2.open(format=pyaudio.paInt16,
 
 print("I'm recording!!")
 
-# Get the start time in seconds from 1970
+# Get the start time in seconds from 1970. This is used to time the loop. 
 start_timestamp = time.time()
 continueloop = True
 while continueloop:
@@ -58,8 +58,9 @@ while continueloop:
     frames2.extend(data2)
 
     loop_timestamp = time.time()
-    continueloop = (loop_timestamp - start_timestamp < sampletime)
+    continueloop = (loop_timestamp - start_timestamp < sampletime) # this line will turn false when the recording time is complete and fall out of the loop.
 
+# Stop recording and close the streams.
 stream.stop_stream()
 stream.close()
 p.terminate()
@@ -86,35 +87,38 @@ filenameprefix = 'data_d='+str(dist)+'_'
 
 # getting the current date and time
 current_datetime = datetime.now()
+
 # getting the date and time from the current date and time in the given format
 filenamesuffix = current_datetime.strftime("%Y%m%d%H%M%S")
 fullfilename = filepath+filenameprefix+filenamesuffix+'.csv'
 
+# format the data for saving in a csv table. Create the time column.
 times = pd.DataFrame(np.linspace(0, sampletime, amplitude.shape[0]))
 times.columns = ["Time (s)"]
 
+# Create the sound data columns.
 sounddata = pd.DataFrame(amplitude)
 sounddata2 = pd.DataFrame(amplitude2)
 
+# Stick the columns together.
 fulldata = pd.concat([times,sounddata,sounddata2],axis = 1)
 
 fulldata.columns = ["Time (s)", "Mic 1", "Mic 2"]
  
+ # Save to file. 
 fulldata.to_csv(fullfilename)
 
+# Plot the data for initial confirmation.
 print("Plotting...")
 fig, ax = plt.subplots()
 lines = ax.plot(fulldata["Time (s)"],fulldata["Mic 1"],'r',fulldata["Time (s)"], fulldata["Mic 2"], 'b')
 ax.legend(["Channel 1", "Channel 2"],
            loc='lower left', ncol=2)
-#ax.axis((0, len(fulldata), -1, 1))
-#ax.set_yticks([0])
+
 ax.yaxis.grid(True)
-#ax.tick_params(bottom=False, top=False, labelbottom=False,
-#               right=False, left=False, labelleft=False)
+
 fig.tight_layout(pad=0)
 plt.show()
 
-# print(fulldata)
 print("Done!")
 
